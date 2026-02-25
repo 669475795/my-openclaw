@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "skills": {
+    "tavily-search": {
+      "version": "1.0.0",
+      "installedAt": 1772020207774
+    },
+    "git": {
+      "version": "1.0.7",
+      "installedAt": 1772021534054
+    }
+  }
+}

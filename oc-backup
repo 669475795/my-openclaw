@@ -1,0 +1,303 @@
+#!/bin/bash
+#
+# OpenClaw Config Backup Hook
+# 在更新或重大改动前自动备份配置
+#
+
+set -e
+
+CONFIG_DIR="${HOME}/.config/openclaw"
+BACKUP_DIR="${HOME}/.config/openclaw-backups"
+TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+BACKUP_NAME="openclaw_backup_${TIMESTAMP}"
+
+# 颜色输出
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# 显示帮助
+show_help() {
+    cat << EOF
+OpenClaw 配置备份钩子
+
+用法: oc-backup [命令] [选项]
+
+命令:
+    backup              立即备份配置
+    list                列出所有备份
+    restore <备份名>     恢复到指定备份
+    cleanup [天数]       清理N天前的备份 (默认30天)
+    update              安全更新 OpenClaw（先备份再更新）
+    config-set <k> <v>   安全设置配置（先备份再修改）
+
+选项:
+    -h, --help          显示帮助
+    -y, --yes           跳过确认
+    -q, --quiet         静默模式
+
+EOF
+}
+
+# 打印日志
+log() {
+    if [ "$QUIET" != "1" ]; then
+        echo -e "${GREEN}[oc-backup]${NC} $1"
+    fi
+}
+
+warn() {
+    if [ "$QUIET" != "1" ]; then
+        echo -e "${YELLOW}[oc-backup]${NC} $1"
+    fi
+}
+
+error() {
+    echo -e "${RED}[oc-backup]${NC} $1" >&2
+}
+
+# 确认操作
+confirm() {
+    if [ "$YES" = "1" ]; then
+        return 0
+    fi
+    read -p "$1 [y/N] " -n 1 -r
+    echo
+    [[ $REPLY =~ ^[Yy]$ ]]
+}
+
+# 创建备份
+do_backup() {
+    if [ ! -d "$CONFIG_DIR" ]; then
+        error "配置目录不存在: $CONFIG_DIR"
+        exit 1
+    fi
+
+    mkdir -p "$BACKUP_DIR"
+    
+    local backup_path="${BACKUP_DIR}/${BACKUP_NAME}.tar.gz"
+    
+    log "正在备份配置到: $backup_path"
+    
+    # 创建压缩备份，排除日志和临时文件
+    tar -czf "$backup_path" \
+        --exclude='logs/*' \
+        --exclude='*.log' \
+        --exclude='delivery-queue/*' \
+        -C "$(dirname "$CONFIG_DIR")" \
+        "$(basename "$CONFIG_DIR")"
+    
+    # 保存元数据
+    local meta_file="${BACKUP_DIR}/${BACKUP_NAME}.meta"
+    cat > "$meta_file" << META
+{
+    "timestamp": "$TIMESTAMP",
+    "date": "$(date -Iseconds)",
+    "version": "$(openclaw --version 2>/dev/null || echo 'unknown')",
+    "path": "$backup_path",
+    "size": "$(du -h "$backup_path" | cut -f1)"
+}
+META
+
+    log "备份完成: ${BACKUP_NAME}.tar.gz ($(du -h "$backup_path" | cut -f1))"
+    echo "$backup_path"
+}
+
+# 列出备份
+list_backups() {
+    if [ ! -d "$BACKUP_DIR" ]; then
+        warn "备份目录不存在"
+        return
+    fi
+
+    log "可用备份列表:"
+    echo
+    
+    local count=0
+    for meta in "$BACKUP_DIR"/openclaw_backup_*.meta; do
+        [ -f "$meta" ] || continue
+        ((count++))
+        
+        local name=$(basename "$meta" .meta)
+        local date=$(grep '"date"' "$meta" | cut -d'"' -f4)
+        local version=$(grep '"version"' "$meta" | cut -d'"' -f4)
+        local size=$(grep '"size"' "$meta" | cut -d'"' -f4)
+        
+        printf "  %-30s %s (%s)\n" "$name" "$date" "$size"
+    done
+    
+    if [ $count -eq 0 ]; then
+        warn "没有找到备份"
+    else
+        echo
+        log "共 $count 个备份，存储位置: $BACKUP_DIR"
+    fi
+}
+
+# 恢复备份
+do_restore() {
+    local backup_name="$1"
+    
+    if [ -z "$backup_name" ]; then
+        error "请指定备份名称"
+        list_backups
+        exit 1
+    fi
+    
+    local backup_path="${BACKUP_DIR}/${backup_name}.tar.gz"
+    
+    if [ ! -f "$backup_path" ]; then
+        error "备份不存在: $backup_path"
+        list_backups
+        exit 1
+    fi
+    
+    warn "即将恢复备份: $backup_name"
+    warn "当前配置将被覆盖！"
+    
+    if ! confirm "确定要恢复吗"; then
+        log "操作已取消"
+        exit 0
+    fi
+    
+    # 先备份当前配置（以防万一）
+    log "先备份当前配置..."
+    do_backup > /dev/null
+    
+    # 停止服务
+    log "停止 OpenClaw 服务..."
+    openclaw gateway stop 2>/dev/null || true
+    
+    # 恢复配置
+    log "恢复备份..."
+    rm -rf "$CONFIG_DIR"
+    tar -xzf "$backup_path" -C "$(dirname "$CONFIG_DIR")"
+    
+    log "恢复完成！"
+    log "请手动启动服务: openclaw gateway start"
+}
+
+# 清理旧备份
+cleanup_backups() {
+    local days="${1:-30}"
+    
+    if [ ! -d "$BACKUP_DIR" ]; then
+        warn "备份目录不存在"
+        return
+    fi
+    
+    log "清理 $days 天前的备份..."
+    
+    local count=0
+    while IFS= read -r file; do
+        rm -f "$file"
+        rm -f "${file%.tar.gz}.meta"
+        ((count++))
+    done < <(find "$BACKUP_DIR" -name "openclaw_backup_*.tar.gz" -mtime +$days)
+    
+    log "已清理 $count 个旧备份"
+}
+
+# 安全更新 OpenClaw
+safe_update() {
+    log "准备安全更新 OpenClaw..."
+    
+    # 1. 先备份
+    local backup_path=$(do_backup)
+    
+    # 2. 执行更新
+    log "执行 npm update..."
+    if npm update -g openclaw; then
+        log "更新成功！"
+        log "备份位置: $backup_path"
+        
+        # 显示版本变化
+        local new_version=$(openclaw --version 2>/dev/null || echo 'unknown')
+        log "新版本: $new_version"
+    else
+        error "更新失败！"
+        warn "如需回退，使用: oc-backup restore $(basename "$backup_path" .tar.gz)"
+        exit 1
+    fi
+}
+
+# 安全设置配置
+safe_config_set() {
+    local key="$1"
+    local value="$2"
+    
+    if [ -z "$key" ] || [ -z "$value" ]; then
+        error "用法: oc-backup config-set <key> <value>"
+        exit 1
+    fi
+    
+    log "准备安全设置配置: $key = $value"
+    
+    # 1. 先备份
+    local backup_path=$(do_backup)
+    
+    # 2. 执行设置
+    log "执行配置修改..."
+    if openclaw config set "$key" "$value"; then
+        log "配置修改成功！"
+        log "备份位置: $backup_path"
+    else
+        error "配置修改失败！"
+        warn "如需恢复，使用: oc-backup restore $(basename "$backup_path" .tar.gz)"
+        exit 1
+    fi
+}
+
+# 解析参数
+QUIET=0
+YES=0
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -h|--help)
+            show_help
+            exit 0
+            ;;
+        -q|--quiet)
+            QUIET=1
+            shift
+            ;;
+        -y|--yes)
+            YES=1
+            shift
+            ;;
+        backup)
+            do_backup
+            exit 0
+            ;;
+        list)
+            list_backups
+            exit 0
+            ;;
+        restore)
+            do_restore "$2"
+            exit 0
+            ;;
+        cleanup)
+            cleanup_backups "$2"
+            exit 0
+            ;;
+        update)
+            safe_update
+            exit 0
+            ;;
+        config-set)
+            safe_config_set "$2" "$3"
+            exit 0
+            ;;
+        *)
+            error "未知命令: $1"
+            show_help
+            exit 1
+            ;;
+    esac
+done
+
+# 默认行为：显示帮助
+show_help
