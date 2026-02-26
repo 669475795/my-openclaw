@@ -1,0 +1,53 @@
+{
+  "providers": {
+    "moonshot": {
+      "baseUrl": "https://api.moonshot.cn/v1",
+      "api": "openai-completions",
+      "models": [
+        {
+          "id": "kimi-k2.5",
+          "name": "Kimi K2.5",
+          "reasoning": false,
+          "input": [
+            "text",
+            "image"
+          ],
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          },
+          "contextWindow": 256000,
+          "maxTokens": 8192,
+          "api": "openai-completions"
+        }
+      ],
+      "apiKey": "sk-kimi-d1MEqi3N3KRuvwxq8LhwQjei2fK6PDctowKCOot7SWbYIyiQilmMqmuYnUFEIPcB"
+    },
+    "kimi-coding": {
+      "baseUrl": "https://api.kimi.com/coding/",
+      "api": "anthropic-messages",
+      "models": [
+        {
+          "id": "k2p5",
+          "name": "Kimi for Coding",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          },
+          "contextWindow": 262144,
+          "maxTokens": 32768
+        }
+      ],
+      "apiKey": "sk-kimi-d1MEqi3N3KRuvwxq8LhwQjei2fK6PDctowKCOot7SWbYIyiQilmMqmuYnUFEIPcB"
+    }
+  }
+}

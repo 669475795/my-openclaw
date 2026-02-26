@@ -1,34 +1,55 @@
-# OpenClaw Workspace - Git Ignore
-
-# Sensitive config files (contain API keys, tokens)
-.openclaw/config.json
-.openclaw/*.key
-.openclaw/secrets/
-
-# Python cache
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-
-# OTP manager (contains sensitive key storage logic)
-otp_manager.py
-
-# Environment files
+# === 敏感数据（绝对不能Git管理）===
+credentials/
+identity/
+*.key
 .env
 .env.local
+openclaw.json
+agents/**/auth.json
+agents/**/auth-profiles.json
+workspace/.github-token
+workspace/memory/otp-pending.json
 
-# Backup files
+# === 运行时数据（自动生成/持续变化）===
+logs/
+memory/*.sqlite
+memory/*.sqlite-journal
+delivery-queue/
+subagents/
+agents/**/sessions/
+browser/openclaw/user-data/
+browser/openclaw/*/Cache/
+browser/openclaw/*/Code\ Cache/
+browser/openclaw/*/GPUCache/
+browser/openclaw/*/Local\ Storage/
+browser/openclaw/*/Session\ Storage/
+browser/openclaw/*/IndexedDB/
+browser/openclaw/*/blob_storage/
+browser/openclaw/*/databases/
+browser/openclaw/*/Service\ Worker/
+
+# === 大文件/依赖（可重建）===
+extensions/**/node_modules/
+agets/**/node_modules/
+
+# === 备份/临时文件 ===
+*.bak
+*.bak.*
+*.log
 *.tar.gz
 *.backup
-
-# OS files
 .DS_Store
 Thumbs.db
 
-# IDE
+# === IDE/OS ===
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
+
+# === 其他 ===
+exec-approvals.json
+update-check.json
+openclaw\ -\ 副本.json:Zone.Identifier
+wsl\ systemd\ user修复命令.txt

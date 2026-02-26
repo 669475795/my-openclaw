@@ -1,0 +1,34 @@
+# OpenClaw Workspace - Git Ignore
+
+# Sensitive config files (contain API keys, tokens)
+.openclaw/config.json
+.openclaw/*.key
+.openclaw/secrets/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# OTP manager (contains sensitive key storage logic)
+otp_manager.py
+
+# Environment files
+.env
+.env.local
+
+# Backup files
+*.tar.gz
+*.backup
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

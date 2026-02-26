@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "jobs": [
+    {
+      "id": "1bc8466b-2b5e-41e6-8f9e-4d74d0d629f7",
+      "agentId": "main",
+      "name": "深夜档案员",
+      "description": "每日深夜自动扫描 agents 目录并生成摘要报告",
+      "enabled": true,
+      "createdAtMs": 1772007600559,
+      "updatedAtMs": 1772093069100,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 3 * * *"
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "你好！我是深夜档案员。现在的任务是：\\n1. 扫描 /home/xad/.openclaw/agents/main/sessions/ 目录下今天的活跃日志。\\n2. 总结boss和soul今天的关键对话、技术调优、决策以及重要信息（比如偏好、配置变更）。\\n3. 使用结构化的 Markdown 格式（参考之前的日记风格），将总结写入 `/home/xad/.openclaw/workspace/memory/$(date +%Y-%m-%d).md`。\\n4. 任务完成后，如果你发现有特别值得长期记录的内容，顺便同步更新到 `/root/.openclaw/workspace/MEMORY.md`。\\n\\n请保持专业且温馨的语气，就像soul在写日记一样。",
+        "model": "kimi-coding/k2p5",
+        "thinking": "high"
+      },
+      "delivery": {
+        "mode": "silent"
+      },
+      "state": {
+        "nextRunAtMs": 1772179200000,
+        "lastRunAtMs": 1772092800007,
+        "lastRunStatus": "ok",
+        "lastStatus": "ok",
+        "lastDurationMs": 269093,
+        "lastDelivered": false,
+        "lastDeliveryStatus": "not-delivered",
+        "consecutiveErrors": 0
+      }
+    }
+  ]
+}
