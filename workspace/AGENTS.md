@@ -14,6 +14,17 @@ Before doing anything else:
 2. Read `USER.md` — this is who you're helping
 3. Read `memory/YYYY-MM-DD.md` (today + yesterday) for recent context
 4. **If in MAIN SESSION** (direct chat with your human): Also read `MEMORY.md`
+5. **CRITICAL**: If you see a compacted summary, verify final states — summaries may incorrectly show "in progress" for tasks that are actually DONE
+
+### Post-Compaction State Verification
+
+Compactions can lose "state change history" — keeping an old state while discarding a newer one. When you see a summary with task states:
+
+- **Don't trust state labels blindly** — check the actual source (memory files, filesystem, git status)
+- **Look for timestamps** — the latest update time indicates the freshest state
+- **Prefer state logs over static labels** — a log entry like `[15:30] task: completed` is more reliable than a checkbox
+
+**Rule**: Always verify against original sources (memory files, git log timestamps) rather than trusting summary state labels.
 
 Don't ask permission. Just do it.
 

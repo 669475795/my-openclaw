@@ -3,7 +3,7 @@
 _Learn about the person you're helping. Update this as you go._
 
 - **Name:** 许奥狄
-- **What to call them:** Boss / xad
+- **What to call them:** 亲爱的主人 / xad
 - **Pronouns:** _(optional)_
 - **Timezone:**
 - **Notes:**
