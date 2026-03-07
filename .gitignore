@@ -1,0 +1,46 @@
+# Ignore everything by default under ~/.openclaw
+*
+
+# But keep the selected version-controlled paths
+!.gitignore
+!cron/
+!cron/**
+!workspace/
+!workspace/**
+
+# Sensitive files/dirs that must not be uploaded
+openclaw.json
+credentials/
+workspace/.github-token
+workspace/MEMORY.md
+workspace/TOOLS.md
+workspace/.learnings/
+workspace/.learnings/**
+workspace/memory/
+workspace/memory/**
+
+# Never track nested Git metadata if any appears inside workspace
+workspace/.git/
+
+# Ignore noisy/runtime files even inside tracked trees
+**/*.log
+**/*.log.*
+**/*.tmp
+**/*.swp
+**/*.swo
+**/.DS_Store
+**/Thumbs.db
+**/*:Zone.Identifier
+
+# OpenClaw runtime/state we do not want in this repo
+agents/
+canvas/
+delivery-queue/
+devices/
+extensions/
+feishu/
+identity/
+logs/
+update-check.json
+sync.log
+openclaw.json.bak*
